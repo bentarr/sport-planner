@@ -1,0 +1,30 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --navy: #0B1628;
+    --lime: #C4FF5E;
+    --lime2: #8FCC1A;
+  }
+}
+
+@layer utilities {
+  .font-bebas { font-family: var(--font-bebas), sans-serif; }
+  .font-mono-dm { font-family: var(--font-dm-mono), monospace; }
+}
+
+/* Scrollbar slim */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #d0d5c8; border-radius: 2px; }
+
+/* Print : calendrier sur 1 page A4 paysage */
+@media print {
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  @page { margin: 5mm; size: A4 landscape; }
+  body { background: white !important; }
+  .no-print { display: none !important; }
+  .print-only { display: block !important; }
+}
