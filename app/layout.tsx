@@ -27,7 +27,10 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="fr" className={`${bebas.variable} ${dmSans.variable} ${dmMono.variable}`}>
-      <body className="font-[family-name:var(--font-dm-sans)] bg-[#E8EAE4] min-h-screen">
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: `if(localStorage.theme==='dark')document.documentElement.classList.add('dark')` }} />
+      </head>
+      <body className="font-[family-name:var(--font-dm-sans)] bg-[#E8EAE4] dark:bg-[#070f1c] min-h-screen">
         {children}
       </body>
     </html>

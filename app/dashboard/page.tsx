@@ -47,6 +47,24 @@ export default function DashboardPage() {
   const [newWeight, setNewWeight] = useState('')
   const [weightDate, setWeightDate] = useState(format(new Date(), 'yyyy-MM-dd'))
   const [user, setUser] = useState<{email?:string; user_metadata?: {full_name?: string}} | null>(null)
+  const [isDark, setIsDark] = useState(false)
+
+  useEffect(() => {
+    setIsDark(document.documentElement.classList.contains('dark'))
+  }, [])
+
+  function toggleDark() {
+    const html = document.documentElement
+    if (html.classList.contains('dark')) {
+      html.classList.remove('dark')
+      localStorage.theme = 'light'
+      setIsDark(false)
+    } else {
+      html.classList.add('dark')
+      localStorage.theme = 'dark'
+      setIsDark(true)
+    }
+  }
 
   const year  = currentDate.getFullYear()
   const month = currentDate.getMonth() + 1
@@ -202,6 +220,9 @@ export default function DashboardPage() {
           >
             + Poids
           </button>
+          <button onClick={toggleDark} className="text-white/40 hover:text-white text-base transition" title="Mode sombre">
+            {isDark ? '☀️' : '🌙'}
+          </button>
           <button onClick={handleSignOut} className="text-white/30 hover:text-white/60 text-xs transition">
             Déco
           </button>
@@ -273,11 +294,11 @@ export default function DashboardPage() {
       </div>
 
       {/* Grid */}
-      <div className="flex-1 bg-white">
-        <div className="grid grid-cols-7 border-l border-t border-gray-200">
+      <div className="flex-1 bg-white dark:bg-[#0d1a2e]">
+        <div className="grid grid-cols-7 border-l border-t border-gray-200 dark:border-white/5">
           {/* Empty offset cells */}
           {Array.from({ length: startOffset }).map((_, i) => (
-            <div key={`offset-${i}`} className="border-r border-b border-gray-200 bg-gray-50 min-h-[150px]"/>
+            <div key={`offset-${i}`} className="border-r border-b border-gray-200 dark:border-white/5 bg-gray-50 dark:bg-white/[0.02] min-h-[180px]"/>
           ))}
 
           {/* Day cells */}
@@ -288,8 +309,8 @@ export default function DashboardPage() {
 
             if (!session && !isPast) {
               return (
-                <div key={day.toString()} className="border-r border-b border-gray-200 bg-gray-50/60 min-h-[150px] p-2 opacity-50">
-                  <span className="font-bebas text-lg text-gray-300">{day.getDate()}</span>
+                <div key={day.toString()} className="border-r border-b border-gray-200 dark:border-white/5 bg-gray-50/60 dark:bg-white/[0.02] min-h-[180px] p-2 opacity-50">
+                  <span className="font-bebas text-lg text-gray-300 dark:text-white/20">{day.getDate()}</span>
                 </div>
               )
             }
