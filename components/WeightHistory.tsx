@@ -18,11 +18,16 @@ interface Props {
   onEdit: (id: string, weight_kg: number) => Promise<void>
 }
 
-const CHART_H = 96
+const W = 400
+const H = 120
+const PAD = { top: 12, right: 16, bottom: 24, left: 36 }
+const CW = W - PAD.left - PAD.right
+const CH = H - PAD.top - PAD.bottom
 
 export default function WeightHistory({ open, onClose, weights, goalWeight, onDelete, onEdit }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editValue, setEditValue] = useState('')
+  const [hoverIdx, setHoverIdx] = useState<number | null>(null)
 
   if (!open) return null
 
@@ -31,19 +36,31 @@ export default function WeightHistory({ open, onClose, weights, goalWeight, onDe
   const latestWeight = sorted[sorted.length - 1]?.weight_kg
   const totalLost = startWeight && latestWeight ? +(startWeight - latestWeight).toFixed(1) : 0
   const toGoal = latestWeight != null ? +Math.max(0, latestWeight - goalWeight).toFixed(1) : null
+  const reached = latestWeight != null && latestWeight <= goalWeight
 
-  const allKgs = sorted.map(w => w.weight_kg)
-  const minW = allKgs.length ? Math.min(...allKgs, goalWeight) - 0.5 : goalWeight - 5
-  const maxW = allKgs.length ? Math.max(...allKgs) + 0.5 : goalWeight + 5
+  // SVG scales
+  const kgs = sorted.map(w => w.weight_kg)
+  const minW = kgs.length ? Math.min(...kgs, goalWeight) - 1 : goalWeight - 5
+  const maxW = kgs.length ? Math.max(...kgs) + 1 : goalWeight + 10
   const range = maxW - minW || 1
 
-  function barPx(kg: number) {
-    return Math.max(3, Math.round(((kg - minW) / range) * CHART_H))
+  function xPos(i: number) {
+    if (sorted.length <= 1) return PAD.left + CW / 2
+    return PAD.left + (i / (sorted.length - 1)) * CW
+  }
+  function yPos(kg: number) {
+    return PAD.top + ((maxW - kg) / range) * CH
   }
 
-  function goalLinePct() {
-    return Math.round(((goalWeight - minW) / range) * 100)
-  }
+  const goalY = yPos(goalWeight)
+  const points = sorted.map((w, i) => ({ x: xPos(i), y: yPos(w.weight_kg), ...w }))
+  const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x},${p.y}`).join(' ')
+  const areaPath = points.length > 0
+    ? `${linePath} L${points[points.length - 1].x},${H - PAD.bottom} L${points[0].x},${H - PAD.bottom} Z`
+    : ''
+
+  // Y-axis labels
+  const yLabels = [maxW, (maxW + minW) / 2, minW].map(v => ({ kg: Math.round(v * 2) / 2, y: yPos(v) }))
 
   async function confirmEdit(log: WeightLog) {
     const val = parseFloat(editValue.replace(',', '.'))
@@ -52,96 +69,144 @@ export default function WeightHistory({ open, onClose, weights, goalWeight, onDe
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-[#0B1628] rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4" onClick={onClose}>
+      <div
+        className="bg-[#0B1628] rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl"
+        onClick={e => e.stopPropagation()}
+      >
         <div className="p-6">
+
           {/* Header */}
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-start justify-between mb-5">
             <div>
-              <p className="text-lime text-[9px] tracking-widest font-mono uppercase">Évolution</p>
-              <h2 className="font-bebas text-4xl text-white leading-none">Poids</h2>
+              <p className="text-lime text-[9px] tracking-[0.2em] font-mono uppercase mb-0.5">Évolution du poids</p>
+              <h2 className="font-bebas text-5xl text-white leading-none">
+                {latestWeight ? `${latestWeight} kg` : '— kg'}
+                {reached && <span className="text-lime ml-2 text-2xl">🎯</span>}
+              </h2>
+              {startWeight && latestWeight && (
+                <p className="text-white/30 text-xs mt-0.5">
+                  Depuis {format(new Date(sorted[0].date + 'T12:00:00'), 'd MMM yyyy', { locale: fr })}
+                </p>
+              )}
             </div>
-            <button onClick={onClose} className="text-white/30 hover:text-white text-2xl leading-none">×</button>
+            <button onClick={onClose} className="text-white/20 hover:text-white text-2xl leading-none mt-1">×</button>
           </div>
 
-          {/* Stats résumé */}
-          <div className="grid grid-cols-3 gap-3 mb-6">
-            <div className="bg-white/5 rounded-xl p-3 text-center">
-              <p className="text-[9px] text-white/30 uppercase tracking-widest">Départ</p>
-              <p className="font-bebas text-2xl text-white">{startWeight ? `${startWeight} kg` : '—'}</p>
-            </div>
-            <div className="bg-white/5 rounded-xl p-3 text-center">
-              <p className="text-[9px] text-white/30 uppercase tracking-widest">Perdu</p>
-              <p className={`font-bebas text-2xl ${totalLost > 0 ? 'text-lime' : 'text-white'}`}>
-                {totalLost > 0 ? `-${totalLost} kg` : totalLost < 0 ? `+${Math.abs(totalLost)} kg` : '—'}
-              </p>
-            </div>
-            <div className="bg-white/5 rounded-xl p-3 text-center">
-              <p className="text-[9px] text-white/30 uppercase tracking-widest">Restant</p>
-              <p className="font-bebas text-2xl text-lime">{toGoal !== null ? `${toGoal} kg` : '—'}</p>
-            </div>
-          </div>
-
-          {/* Graphique */}
-          {sorted.length > 0 ? (
-            <div className="mb-6">
-              <div className="relative" style={{ height: CHART_H + 8 }}>
-                {/* Ligne objectif */}
-                <div
-                  className="absolute left-0 right-0 border-t border-dashed border-lime/50 pointer-events-none"
-                  style={{ bottom: `${goalLinePct()}%` }}
-                >
-                  <span className="text-[8px] text-lime/70 absolute -top-3 right-0">{goalWeight} kg</span>
-                </div>
-                {/* Barres */}
-                <div className="absolute bottom-0 left-0 right-0 flex items-end gap-0.5 h-full">
-                  {sorted.map(w => (
-                    <div key={w.date} className="flex-1 flex flex-col items-center justify-end">
-                      <div
-                        className={`w-full rounded-t-sm transition-all ${w.weight_kg <= goalWeight ? 'bg-lime' : 'bg-white/40'}`}
-                        style={{ height: barPx(w.weight_kg) }}
-                      />
-                    </div>
-                  ))}
-                </div>
+          {/* Stats */}
+          <div className="grid grid-cols-3 gap-2 mb-5">
+            {[
+              { label: 'Départ', value: startWeight ? `${startWeight} kg` : '—', color: 'text-white' },
+              { label: 'Perdu', value: totalLost > 0 ? `-${totalLost} kg` : totalLost < 0 ? `+${Math.abs(totalLost)} kg` : '—', color: totalLost > 0 ? 'text-lime' : 'text-red-400' },
+              { label: 'Objectif', value: toGoal !== null ? (reached ? '✓ Atteint !' : `${toGoal} kg`) : '—', color: reached ? 'text-lime' : 'text-white/70' },
+            ].map(s => (
+              <div key={s.label} className="bg-white/5 rounded-xl p-3 text-center">
+                <p className="text-[9px] text-white/30 uppercase tracking-widest mb-1">{s.label}</p>
+                <p className={`font-bebas text-xl leading-none ${s.color}`}>{s.value}</p>
               </div>
-              {/* Labels dates */}
-              <div className="flex gap-0.5 mt-1">
-                {sorted.map(w => (
-                  <div key={w.date} className="flex-1 text-center">
-                    <p className="text-[7px] text-white/25 truncate">
-                      {format(new Date(w.date + 'T12:00:00'), 'd/M')}
-                    </p>
-                  </div>
+            ))}
+          </div>
+
+          {/* SVG Chart */}
+          {sorted.length >= 2 ? (
+            <div className="bg-white/5 rounded-xl p-3 mb-5">
+              <svg
+                viewBox={`0 0 ${W} ${H}`}
+                className="w-full"
+                style={{ height: 130 }}
+                onMouseLeave={() => setHoverIdx(null)}
+              >
+                <defs>
+                  <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#C4FF5E" stopOpacity="0.25"/>
+                    <stop offset="100%" stopColor="#C4FF5E" stopOpacity="0"/>
+                  </linearGradient>
+                </defs>
+
+                {/* Y-axis labels */}
+                {yLabels.map(l => (
+                  <text key={l.kg} x={PAD.left - 4} y={l.y + 4} textAnchor="end" fontSize="8" fill="rgba(255,255,255,0.25)">
+                    {l.kg}
+                  </text>
                 ))}
-              </div>
+
+                {/* Horizontal grid lines */}
+                {yLabels.map(l => (
+                  <line key={l.kg} x1={PAD.left} y1={l.y} x2={W - PAD.right} y2={l.y} stroke="rgba(255,255,255,0.05)" strokeWidth="1"/>
+                ))}
+
+                {/* Goal line */}
+                <line x1={PAD.left} y1={goalY} x2={W - PAD.right} y2={goalY} stroke="#C4FF5E" strokeWidth="1" strokeDasharray="4 3" opacity="0.5"/>
+                <text x={W - PAD.right + 2} y={goalY + 3} fontSize="8" fill="#C4FF5E" opacity="0.7">{goalWeight}</text>
+
+                {/* Area fill */}
+                <path d={areaPath} fill="url(#areaGrad)"/>
+
+                {/* Line */}
+                <path d={linePath} fill="none" stroke="#C4FF5E" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round"/>
+
+                {/* Data points + hover */}
+                {points.map((p, i) => (
+                  <g key={p.id} onMouseEnter={() => setHoverIdx(i)}>
+                    <circle cx={p.x} cy={p.y} r="10" fill="transparent"/>
+                    <circle cx={p.x} cy={p.y} r={hoverIdx === i ? 4 : 3}
+                      fill={p.weight_kg <= goalWeight ? '#C4FF5E' : '#0B1628'}
+                      stroke="#C4FF5E" strokeWidth="1.5"
+                    />
+                    {hoverIdx === i && (
+                      <g>
+                        <rect x={p.x - 22} y={p.y - 22} width="44" height="14" rx="4" fill="#0B1628" stroke="#C4FF5E" strokeWidth="0.5" opacity="0.9"/>
+                        <text x={p.x} y={p.y - 12} textAnchor="middle" fontSize="8" fill="#C4FF5E" fontWeight="bold">
+                          {p.weight_kg} kg
+                        </text>
+                      </g>
+                    )}
+                  </g>
+                ))}
+
+                {/* X-axis dates — first and last only */}
+                {points.length > 0 && (
+                  <>
+                    <text x={points[0].x} y={H - 4} textAnchor="start" fontSize="7" fill="rgba(255,255,255,0.25)">
+                      {format(new Date(points[0].date + 'T12:00:00'), 'd MMM', { locale: fr })}
+                    </text>
+                    {points.length > 1 && (
+                      <text x={points[points.length-1].x} y={H - 4} textAnchor="end" fontSize="7" fill="rgba(255,255,255,0.25)">
+                        {format(new Date(points[points.length-1].date + 'T12:00:00'), 'd MMM', { locale: fr })}
+                      </text>
+                    )}
+                  </>
+                )}
+              </svg>
             </div>
-          ) : (
-            <p className="text-white/30 text-sm text-center py-4 mb-4">Aucune donnée</p>
-          )}
+          ) : sorted.length === 1 ? (
+            <div className="bg-white/5 rounded-xl p-4 mb-5 text-center text-white/30 text-xs">
+              Ajoute une 2ème mesure pour voir la courbe
+            </div>
+          ) : null}
 
           {/* Liste CRUD */}
-          <div className="flex flex-col gap-0.5">
+          <div className="space-y-0.5">
             {[...sorted].reverse().map((w, i, arr) => {
               const prev = arr[i + 1]
               const diff = prev ? +(w.weight_kg - prev.weight_kg).toFixed(1) : null
               const isEditing = editingId === w.id
 
               return (
-                <div key={w.id} className="flex items-center justify-between py-2 border-b border-white/5 gap-2">
-                  <span className="text-white/40 text-xs shrink-0">
+                <div key={w.id} className="flex items-center justify-between py-2.5 border-b border-white/5 last:border-0 group">
+                  <span className="text-white/40 text-xs w-28 shrink-0">
                     {format(new Date(w.date + 'T12:00:00'), 'EEE d MMM', { locale: fr })}
                   </span>
 
-                  <div className="flex items-center gap-2 ml-auto">
+                  <div className="flex items-center gap-3 ml-auto">
                     {diff !== null && (
-                      <span className={`text-xs font-mono ${diff < 0 ? 'text-lime' : diff > 0 ? 'text-red-400' : 'text-white/20'}`}>
+                      <span className={`text-[10px] font-mono tabular-nums ${diff < 0 ? 'text-lime' : diff > 0 ? 'text-red-400' : 'text-white/20'}`}>
                         {diff > 0 ? `+${diff}` : diff} kg
                       </span>
                     )}
 
                     {isEditing ? (
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-1.5">
                         <input
                           autoFocus
                           type="number"
@@ -151,23 +216,21 @@ export default function WeightHistory({ open, onClose, weights, goalWeight, onDe
                           onKeyDown={e => { if (e.key === 'Enter') confirmEdit(w); if (e.key === 'Escape') setEditingId(null) }}
                           className="bg-white/10 text-white text-sm px-2 py-0.5 rounded w-20 outline-none focus:ring-1 focus:ring-lime"
                         />
-                        <span className="text-white/30 text-xs">kg</span>
-                        <button onClick={() => confirmEdit(w)} className="text-lime text-xs font-bold px-2 py-0.5 bg-lime/10 rounded">✓</button>
-                        <button onClick={() => setEditingId(null)} className="text-white/30 text-xs px-1">✕</button>
+                        <button onClick={() => confirmEdit(w)} className="text-lime text-xs font-bold px-2 py-0.5 bg-lime/10 rounded hover:bg-lime/20">✓</button>
+                        <button onClick={() => setEditingId(null)} className="text-white/30 hover:text-white text-xs px-1">✕</button>
                       </div>
                     ) : (
                       <button
                         onClick={() => { setEditingId(w.id); setEditValue(w.weight_kg.toString()) }}
-                        className="font-bebas text-xl text-white hover:text-lime transition"
+                        className="font-bebas text-2xl text-white hover:text-lime transition leading-none"
                       >
-                        {w.weight_kg} kg
+                        {w.weight_kg} <span className="text-sm text-white/30">kg</span>
                       </button>
                     )}
 
                     <button
                       onClick={() => onDelete(w.id)}
-                      className="text-white/20 hover:text-red-400 transition text-sm ml-1"
-                      title="Supprimer"
+                      className="opacity-0 group-hover:opacity-100 text-white/20 hover:text-red-400 transition text-lg leading-none"
                     >
                       ×
                     </button>
@@ -175,7 +238,11 @@ export default function WeightHistory({ open, onClose, weights, goalWeight, onDe
                 </div>
               )
             })}
+            {sorted.length === 0 && (
+              <p className="text-white/20 text-sm text-center py-8">Aucun poids enregistré</p>
+            )}
           </div>
+
         </div>
       </div>
     </div>
