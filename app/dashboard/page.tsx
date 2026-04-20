@@ -148,9 +148,10 @@ export default function DashboardPage() {
     const existing = savedSessions.find(s => s.date === dateStr)
     const session  = getSessionForDate(new Date(dateStr))
     if (!session) return
+    // Optimistic update so StatsBar reflects instantly
     if (existing) {
-      const res = await fetch('/api/sessions', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: existing.id, calories }) })
-      if (res.ok) { const updated = await res.json(); setSavedSessions(prev => prev.map(s => s.id === updated.id ? updated : s)) }
+      setSavedSessions(prev => prev.map(s => s.date === dateStr ? { ...s, calories } : s))
+      fetch('/api/sessions', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: existing.id, calories }) })
     } else {
       const res = await fetch('/api/sessions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ date: dateStr, type: session.type, label: session.label, done: false, calories }) })
       if (res.ok) { const created = await res.json(); setSavedSessions(prev => [...prev, created]) }
@@ -276,7 +277,7 @@ export default function DashboardPage() {
         <div className="grid grid-cols-7 border-l border-t border-gray-200">
           {/* Empty offset cells */}
           {Array.from({ length: startOffset }).map((_, i) => (
-            <div key={`offset-${i}`} className="border-r border-b border-gray-200 bg-gray-50 min-h-[100px] sm:min-h-[120px]"/>
+            <div key={`offset-${i}`} className="border-r border-b border-gray-200 bg-gray-50 min-h-[150px]"/>
           ))}
 
           {/* Day cells */}
@@ -287,7 +288,7 @@ export default function DashboardPage() {
 
             if (!session && !isPast) {
               return (
-                <div key={day.toString()} className="border-r border-b border-gray-200 bg-gray-50/60 min-h-[100px] sm:min-h-[120px] p-2 opacity-50">
+                <div key={day.toString()} className="border-r border-b border-gray-200 bg-gray-50/60 min-h-[150px] p-2 opacity-50">
                   <span className="font-bebas text-lg text-gray-300">{day.getDate()}</span>
                 </div>
               )

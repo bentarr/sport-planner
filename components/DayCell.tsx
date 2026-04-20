@@ -44,7 +44,7 @@ export default function DayCell({ date, session, savedSession, isToday, isPast, 
 
   if (isPast) {
     return (
-      <div className="border-r border-b border-gray-200 bg-gray-50 opacity-40 min-h-[110px] p-2">
+      <div className="border-r border-b border-gray-200 bg-gray-50 opacity-40 min-h-[150px] p-2">
         <span className="font-bebas text-lg text-gray-400">{dayNum}</span>
       </div>
     )
@@ -63,37 +63,36 @@ export default function DayCell({ date, session, savedSession, isToday, isPast, 
   }
 
   function handleNoteBlur() {
-    if (localNote !== (savedSession?.note ?? '')) {
-      onNote(dateStr, localNote)
-    }
+    if (localNote !== (savedSession?.note ?? '')) onNote(dateStr, localNote)
   }
 
   function handleCaloriesBlur() {
     const val = parseInt(localCalories)
     const saved = savedSession?.calories ?? 0
-    if (!isNaN(val) && val !== saved) {
-      onCalories(dateStr, val)
-    } else if (localCalories === '' && saved > 0) {
-      onCalories(dateStr, 0)
-    }
+    if (!isNaN(val) && val !== saved) onCalories(dateStr, val)
+    else if (localCalories === '' && saved > 0) onCalories(dateStr, 0)
   }
+
+  const hasCalories = localCalories !== '' && localCalories !== '0'
+  const hasNote = localNote.trim() !== ''
 
   return (
     <div className={clsx(
-      'border-r border-b border-gray-200 min-h-[110px] p-2 flex flex-col gap-1 relative transition-colors',
+      'border-r border-b border-gray-200 min-h-[150px] p-2 flex flex-col gap-1.5 relative transition-colors',
       localDone ? 'bg-lime/20' : isToday ? 'bg-yellow-50' : session.type === 'rest' ? 'bg-gray-50' : 'bg-white',
     )}>
-      <span className={clsx('font-bebas text-xl leading-none', isToday ? 'text-lime2' : 'text-navy')}>
+      {/* Numéro jour */}
+      <span className={clsx('font-bebas text-xl leading-none', isToday ? 'text-lime2' : 'text-navy/70')}>
         {dayNum}
       </span>
 
+      {/* Bouton done */}
       <button
         onClick={handleToggle}
         className={clsx(
           'absolute top-2 right-2 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all',
           localDone ? 'bg-lime border-lime2' : 'border-gray-300 bg-transparent hover:border-lime2'
         )}
-        title="Marquer comme fait"
       >
         {localDone && (
           <svg width="9" height="9" viewBox="0 0 10 10" fill="none">
@@ -102,42 +101,58 @@ export default function DayCell({ date, session, savedSession, isToday, isPast, 
         )}
       </button>
 
+      {/* Badge type */}
       <span className={clsx('text-[9px] font-bold uppercase tracking-wide text-white px-1.5 py-0.5 rounded w-fit leading-tight', cfg.color)}>
         {session.label || cfg.label}
       </span>
 
+      {/* Intensité */}
       {session.type !== 'rest' && (
-        <div className="flex items-center gap-1 mt-0.5">
-          <span className="text-[8px] text-gray-400 mr-0.5">Intensité</span>
+        <div className="flex items-center gap-1">
+          <span className="text-[8px] text-gray-300 mr-0.5">intensité</span>
           {[1,2,3,4,5].map(n => (
             <button
               key={n}
               onClick={() => handleIntensity(n)}
-              className={clsx('w-1.5 h-1.5 rounded-full transition-colors', n <= localIntensity ? 'bg-lime2' : 'bg-gray-200')}
+              className={clsx('w-2 h-2 rounded-full transition-colors', n <= localIntensity ? 'bg-lime2' : 'bg-gray-200 hover:bg-gray-300')}
             />
           ))}
         </div>
       )}
 
+      {/* Calories */}
       {session.type !== 'rest' && (
-        <div className="flex items-center gap-1">
+        <div className={clsx(
+          'flex items-center gap-1 rounded-md px-1.5 py-1 transition-colors',
+          hasCalories ? 'bg-orange-50 border border-orange-200' : 'bg-gray-50 border border-gray-100'
+        )}>
+          <span className="text-[10px] leading-none">🔥</span>
           <input
             type="number"
             min="0"
             max="9999"
-            placeholder="0"
+            placeholder="—"
             value={localCalories}
             onChange={e => setLocalCalories(e.target.value)}
             onBlur={handleCaloriesBlur}
-            className="text-[9px] border-b border-dashed border-gray-200 bg-transparent outline-none w-10 py-0.5 text-navy placeholder:text-gray-300 focus:border-lime2"
+            className={clsx(
+              'w-10 text-[9px] bg-transparent outline-none font-mono',
+              hasCalories ? 'text-orange-700' : 'text-gray-400 placeholder:text-gray-300'
+            )}
           />
-          <span className="text-[8px] text-gray-300">kcal</span>
+          <span className={clsx('text-[8px]', hasCalories ? 'text-orange-400' : 'text-gray-300')}>kcal</span>
         </div>
       )}
 
+      {/* Note */}
       <input
-        className="text-[9px] border-b border-dashed border-gray-200 bg-transparent outline-none mt-auto w-full py-0.5 text-navy placeholder:text-gray-300 focus:border-lime2"
-        placeholder="Note..."
+        className={clsx(
+          'text-[9px] w-full px-1.5 py-1 rounded-md outline-none placeholder:text-gray-300 transition-all mt-auto',
+          hasNote
+            ? 'bg-navy/5 border border-navy/10 text-navy focus:border-lime2/50'
+            : 'bg-gray-50 border border-gray-100 text-navy focus:bg-white focus:border-lime2/50'
+        )}
+        placeholder="✏️ note..."
         value={localNote}
         onChange={e => setLocalNote(e.target.value)}
         onBlur={handleNoteBlur}
