@@ -5,9 +5,10 @@ interface Props {
   goalSessions: number
   latestWeight?: number
   goalWeight?: number
+  totalCalories?: number
 }
 
-export default function StatsBar({ doneSessions, goalSessions, latestWeight, goalWeight }: Props) {
+export default function StatsBar({ doneSessions, goalSessions, latestWeight, goalWeight, totalCalories }: Props) {
   const progress = goalSessions > 0 ? Math.min((doneSessions / goalSessions) * 100, 100) : 0
 
   return (
@@ -18,7 +19,6 @@ export default function StatsBar({ doneSessions, goalSessions, latestWeight, goa
           <span className="font-bebas text-2xl text-lime leading-none">{doneSessions}</span>
           <span className="text-white/30 text-xs mb-0.5">/ {goalSessions}</span>
         </div>
-        {/* Progress bar */}
         <div className="w-20 h-1 bg-white/10 rounded-full overflow-hidden">
           <div className="h-full bg-lime rounded-full transition-all" style={{ width: `${progress}%` }}/>
         </div>
@@ -38,7 +38,7 @@ export default function StatsBar({ doneSessions, goalSessions, latestWeight, goa
       <div className="flex flex-col gap-0.5">
         <span className="text-[9px] tracking-widest text-white/30 uppercase">Objectif</span>
         <span className="font-bebas text-2xl text-lime leading-none">
-          {goalWeight ? `${goalWeight} kg` : '80 kg'}
+          {goalWeight ? `${goalWeight} kg` : '78 kg'}
         </span>
       </div>
 
@@ -49,6 +49,18 @@ export default function StatsBar({ doneSessions, goalSessions, latestWeight, goa
             <span className="text-[9px] tracking-widest text-white/30 uppercase">Restant</span>
             <span className="font-bebas text-2xl text-lime leading-none">
               {Math.max(0, latestWeight - goalWeight).toFixed(1)} kg
+            </span>
+          </div>
+        </>
+      )}
+
+      {totalCalories !== undefined && totalCalories > 0 && (
+        <>
+          <div className="w-px h-6 bg-white/10 hidden sm:block"/>
+          <div className="flex flex-col gap-0.5">
+            <span className="text-[9px] tracking-widest text-white/30 uppercase">Calories brûlées</span>
+            <span className="font-bebas text-2xl text-lime leading-none">
+              {totalCalories.toLocaleString('fr-FR')} kcal
             </span>
           </div>
         </>

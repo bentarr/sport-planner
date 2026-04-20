@@ -21,6 +21,7 @@ interface DbSession {
   done: boolean
   intensity?: number
   note?: string
+  calories?: number
 }
 
 function getSessionForDate(date: Date) {
@@ -44,6 +45,7 @@ export default function DashboardPage() {
   const [showWeightHistory, setShowWeightHistory] = useState(false)
   const [showWeightInput, setShowWeightInput] = useState(false)
   const [newWeight, setNewWeight] = useState('')
+  const [weightDate, setWeightDate] = useState(format(new Date(), 'yyyy-MM-dd'))
   const [user, setUser] = useState<{email?:string; user_metadata?: {full_name?: string}} | null>(null)
 
   const year  = currentDate.getFullYear()
@@ -80,9 +82,10 @@ export default function DashboardPage() {
   const today = new Date()
 
   // Stats
-  const doneSessions = savedSessions.filter(s => s.done).length
-  const latestWeight = weights[0]?.weight_kg
-  const START_DATE   = new Date(2026, 3, 17)
+  const doneSessions  = savedSessions.filter(s => s.done).length
+  const totalCalories = savedSessions.reduce((sum, s) => sum + (s.calories ?? 0), 0)
+  const latestWeight  = weights.slice().sort((a, b) => b.date.localeCompare(a.date))[0]?.weight_kg
+  const START_DATE    = new Date(2026, 3, 17)
 
   function getDbSession(date: Date) {
     const key = format(date, 'yyyy-MM-dd')
@@ -136,9 +139,22 @@ export default function DashboardPage() {
     if (isNaN(kg)) return
     const res = await fetch('/api/weight', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ date: format(new Date(), 'yyyy-MM-dd'), weight_kg: kg })
+      body: JSON.stringify({ date: weightDate, weight_kg: kg })
     })
-    if (res.ok) { await loadWeights(); setShowWeightInput(false); setNewWeight('') }
+    if (res.ok) { await loadWeights(); setShowWeightInput(false); setNewWeight(''); setWeightDate(format(new Date(), 'yyyy-MM-dd')) }
+  }
+
+  async function handleCalories(dateStr: string, calories: number) {
+    const existing = savedSessions.find(s => s.date === dateStr)
+    const session  = getSessionForDate(new Date(dateStr))
+    if (!session) return
+    if (existing) {
+      const res = await fetch('/api/sessions', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: existing.id, calories }) })
+      if (res.ok) { const updated = await res.json(); setSavedSessions(prev => prev.map(s => s.id === updated.id ? updated : s)) }
+    } else {
+      const res = await fetch('/api/sessions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ date: dateStr, type: session.type, label: session.label, done: false, calories }) })
+      if (res.ok) { const created = await res.json(); setSavedSessions(prev => [...prev, created]) }
+    }
   }
 
   async function handleSignOut() {
@@ -183,8 +199,14 @@ export default function DashboardPage() {
 
       {/* Weight quick-add */}
       {showWeightInput && (
-        <div className="bg-[#132038] px-4 sm:px-6 py-2 flex items-center gap-3 no-print">
-          <span className="text-white/50 text-xs">Poids du jour :</span>
+        <div className="bg-[#132038] px-4 sm:px-6 py-2 flex flex-wrap items-center gap-3 no-print">
+          <span className="text-white/50 text-xs">Poids :</span>
+          <input
+            type="date"
+            value={weightDate}
+            onChange={e => setWeightDate(e.target.value)}
+            className="bg-white/10 text-white text-sm px-3 py-1 rounded-lg outline-none focus:ring-1 focus:ring-lime"
+          />
           <input
             type="number"
             step="0.1"
@@ -199,11 +221,6 @@ export default function DashboardPage() {
           <button onClick={handleAddWeight} className="bg-lime text-navy text-xs font-bold px-3 py-1 rounded-lg">
             Enregistrer
           </button>
-          {weights.slice(0, 3).map(w => (
-            <span key={w.date} className="text-white/30 text-xs hidden sm:inline">
-              {format(new Date(w.date), 'd MMM', { locale: fr })} : {w.weight_kg}kg
-            </span>
-          ))}
         </div>
       )}
 
@@ -212,7 +229,8 @@ export default function DashboardPage() {
         doneSessions={doneSessions}
         goalSessions={16}
         latestWeight={latestWeight}
-        goalWeight={80}
+        goalWeight={78}
+        totalCalories={totalCalories}
       />
 
       {/* Calendar header */}
@@ -276,6 +294,7 @@ export default function DashboardPage() {
                 onToggleDone={handleToggleDone}
                 onIntensity={handleIntensity}
                 onNote={handleNote}
+                onCalories={handleCalories}
               />
             )
           })}
@@ -293,7 +312,7 @@ export default function DashboardPage() {
       </div>
 
       <CircuitModal open={showCircuits} onClose={() => setShowCircuits(false)} />
-      <WeightHistory open={showWeightHistory} onClose={() => setShowWeightHistory(false)} weights={weights} goalWeight={80} />
+      <WeightHistory open={showWeightHistory} onClose={() => setShowWeightHistory(false)} weights={weights} goalWeight={78} />
     </div>
   )
 }

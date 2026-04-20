@@ -12,6 +12,7 @@ interface Session {
   done: boolean
   intensity?: number
   note?: string
+  calories?: number
 }
 
 interface Props {
@@ -23,9 +24,10 @@ interface Props {
   onToggleDone: (date: string, done: boolean) => Promise<void>
   onIntensity: (date: string, intensity: number) => Promise<void>
   onNote: (date: string, note: string) => Promise<void>
+  onCalories: (date: string, calories: number) => Promise<void>
 }
 
-export default function DayCell({ date, session, savedSession, isToday, isPast, onToggleDone, onIntensity, onNote }: Props) {
+export default function DayCell({ date, session, savedSession, isToday, isPast, onToggleDone, onIntensity, onNote, onCalories }: Props) {
   const cfg = SESSION_CONFIGS[session.type]
   const dateStr = format(date, 'yyyy-MM-dd')
   const dayNum = date.getDate()
@@ -33,11 +35,12 @@ export default function DayCell({ date, session, savedSession, isToday, isPast, 
   const [localDone, setLocalDone] = useState(savedSession?.done ?? false)
   const [localIntensity, setLocalIntensity] = useState(savedSession?.intensity ?? 0)
   const [localNote, setLocalNote] = useState(savedSession?.note ?? '')
+  const [localCalories, setLocalCalories] = useState(savedSession?.calories?.toString() ?? '')
 
-  // Sync when savedSession loads or changes
   useEffect(() => { setLocalDone(savedSession?.done ?? false) }, [savedSession?.done])
   useEffect(() => { setLocalIntensity(savedSession?.intensity ?? 0) }, [savedSession?.intensity])
   useEffect(() => { setLocalNote(savedSession?.note ?? '') }, [savedSession?.note])
+  useEffect(() => { setLocalCalories(savedSession?.calories?.toString() ?? '') }, [savedSession?.calories])
 
   if (isPast) {
     return (
@@ -49,8 +52,8 @@ export default function DayCell({ date, session, savedSession, isToday, isPast, 
 
   function handleToggle() {
     const newDone = !localDone
-    setLocalDone(newDone)        // UI instantanée
-    onToggleDone(dateStr, newDone) // réseau en arrière-plan
+    setLocalDone(newDone)
+    onToggleDone(dateStr, newDone)
   }
 
   function handleIntensity(val: number) {
@@ -60,9 +63,18 @@ export default function DayCell({ date, session, savedSession, isToday, isPast, 
   }
 
   function handleNoteBlur() {
-    const saved = savedSession?.note ?? ''
-    if (localNote !== saved) {
+    if (localNote !== (savedSession?.note ?? '')) {
       onNote(dateStr, localNote)
+    }
+  }
+
+  function handleCaloriesBlur() {
+    const val = parseInt(localCalories)
+    const saved = savedSession?.calories ?? 0
+    if (!isNaN(val) && val !== saved) {
+      onCalories(dateStr, val)
+    } else if (localCalories === '' && saved > 0) {
+      onCalories(dateStr, 0)
     }
   }
 
@@ -104,6 +116,22 @@ export default function DayCell({ date, session, savedSession, isToday, isPast, 
               className={clsx('w-1.5 h-1.5 rounded-full transition-colors', n <= localIntensity ? 'bg-lime2' : 'bg-gray-200')}
             />
           ))}
+        </div>
+      )}
+
+      {session.type !== 'rest' && (
+        <div className="flex items-center gap-1">
+          <input
+            type="number"
+            min="0"
+            max="9999"
+            placeholder="0"
+            value={localCalories}
+            onChange={e => setLocalCalories(e.target.value)}
+            onBlur={handleCaloriesBlur}
+            className="text-[9px] border-b border-dashed border-gray-200 bg-transparent outline-none w-10 py-0.5 text-navy placeholder:text-gray-300 focus:border-lime2"
+          />
+          <span className="text-[8px] text-gray-300">kcal</span>
         </div>
       )}
 
