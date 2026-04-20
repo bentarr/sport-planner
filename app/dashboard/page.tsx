@@ -40,7 +40,7 @@ export default function DashboardPage() {
   const supabase = createClient()
   const [currentDate, setCurrentDate] = useState(new Date())
   const [savedSessions, setSavedSessions] = useState<DbSession[]>([])
-  const [weights, setWeights] = useState<{date:string; weight_kg:number}[]>([])
+  const [weights, setWeights] = useState<{id:string; date:string; weight_kg:number}[]>([])
   const [showCircuits, setShowCircuits] = useState(false)
   const [showWeightHistory, setShowWeightHistory] = useState(false)
   const [showWeightInput, setShowWeightInput] = useState(false)
