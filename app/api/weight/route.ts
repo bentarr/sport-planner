@@ -31,7 +31,7 @@ export async function GET() {
     .select('*')
     .eq('user_id', user.id)
     .order('date', { ascending: false })
-    .limit(30)
+    .limit(90)
 
   return NextResponse.json(data ?? [])
 }
@@ -44,7 +44,6 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json()
 
-  // Try update first, insert if no row exists for that date
   const { data: existing } = await supabase
     .from('weight_logs')
     .select('id')
@@ -58,4 +57,40 @@ export async function POST(req: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json(data)
+}
+
+// PATCH /api/weight  { id, weight_kg }
+export async function PATCH(req: NextRequest) {
+  const supabase = await makeSupabase()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const { id, weight_kg } = await req.json()
+  const { data, error } = await supabase
+    .from('weight_logs')
+    .update({ weight_kg })
+    .eq('id', id)
+    .eq('user_id', user.id)
+    .select()
+    .single()
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  return NextResponse.json(data)
+}
+
+// DELETE /api/weight  { id }
+export async function DELETE(req: NextRequest) {
+  const supabase = await makeSupabase()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const { id } = await req.json()
+  const { error } = await supabase
+    .from('weight_logs')
+    .delete()
+    .eq('id', id)
+    .eq('user_id', user.id)
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  return NextResponse.json({ ok: true })
 }

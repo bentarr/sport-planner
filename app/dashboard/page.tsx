@@ -157,6 +157,16 @@ export default function DashboardPage() {
     }
   }
 
+  async function handleDeleteWeight(id: string) {
+    await fetch('/api/weight', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) })
+    setWeights(prev => prev.filter(w => w.id !== id))
+  }
+
+  async function handleEditWeight(id: string, weight_kg: number) {
+    const res = await fetch('/api/weight', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, weight_kg }) })
+    if (res.ok) { const updated = await res.json(); setWeights(prev => prev.map(w => w.id === updated.id ? updated : w)) }
+  }
+
   async function handleSignOut() {
     await supabase.auth.signOut()
     router.push('/')
@@ -312,7 +322,7 @@ export default function DashboardPage() {
       </div>
 
       <CircuitModal open={showCircuits} onClose={() => setShowCircuits(false)} />
-      <WeightHistory open={showWeightHistory} onClose={() => setShowWeightHistory(false)} weights={weights} goalWeight={78} />
+      <WeightHistory open={showWeightHistory} onClose={() => setShowWeightHistory(false)} weights={weights} goalWeight={78} onDelete={handleDeleteWeight} onEdit={handleEditWeight} />
     </div>
   )
 }
