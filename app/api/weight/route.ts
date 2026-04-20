@@ -43,12 +43,19 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await req.json()
-  const { data, error } = await supabase
-    .from('weight_logs')
-    .upsert({ ...body, user_id: user.id }, { onConflict: 'user_id,date' })
-    .select()
-    .single()
 
-  if (error) return NextResponse.json({ error }, { status: 500 })
+  // Try update first, insert if no row exists for that date
+  const { data: existing } = await supabase
+    .from('weight_logs')
+    .select('id')
+    .eq('user_id', user.id)
+    .eq('date', body.date)
+    .maybeSingle()
+
+  const { data, error } = existing
+    ? await supabase.from('weight_logs').update({ weight_kg: body.weight_kg }).eq('id', existing.id).select().single()
+    : await supabase.from('weight_logs').insert({ ...body, user_id: user.id }).select().single()
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json(data)
 }

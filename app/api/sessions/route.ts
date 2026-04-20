@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     const { data, error } = await supabase
       .from('sessions')
-      .upsert({ ...body, user_id: user.id }, { onConflict: 'user_id,date' })
+      .insert({ ...body, user_id: user.id })
       .select()
       .single()
 
