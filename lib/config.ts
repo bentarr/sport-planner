@@ -38,7 +38,7 @@ export const SESSION_CONFIGS: Record<SessionType, SessionConfig> = {
     borderColor: 'border-red-400',
   },
   rest: {
-    label: 'Repos',
+    label: 'Repos / Vélo / Marche',
     sub: 'Récupération',
     color: 'bg-gray-400',
     textColor: 'text-gray-600',

@@ -7,6 +7,7 @@ import { WEEKLY_PLAN, SPECIAL_DAYS, PROGRAMME_START, SESSION_CONFIGS, SessionTyp
 import DayCell from '@/components/DayCell'
 import StatsBar from '@/components/StatsBar'
 import CircuitModal from '@/components/CircuitModal'
+import WeightHistory from '@/components/WeightHistory'
 import { useRouter } from 'next/navigation'
 
 const WEEKDAYS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']
@@ -40,6 +41,7 @@ export default function DashboardPage() {
   const [savedSessions, setSavedSessions] = useState<DbSession[]>([])
   const [weights, setWeights] = useState<{date:string; weight_kg:number}[]>([])
   const [showCircuits, setShowCircuits] = useState(false)
+  const [showWeightHistory, setShowWeightHistory] = useState(false)
   const [showWeightInput, setShowWeightInput] = useState(false)
   const [newWeight, setNewWeight] = useState('')
   const [user, setUser] = useState<{email?:string; user_metadata?: {full_name?: string}} | null>(null)
@@ -160,6 +162,12 @@ export default function DashboardPage() {
             className="bg-lime text-navy text-xs font-bold px-3 py-1.5 rounded-lg hover:opacity-90 transition"
           >
             Circuits 📋
+          </button>
+          <button
+            onClick={() => setShowWeightHistory(true)}
+            className="bg-white/10 text-white text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-white/20 transition"
+          >
+            📈
           </button>
           <button
             onClick={() => setShowWeightInput(v => !v)}
@@ -285,6 +293,7 @@ export default function DashboardPage() {
       </div>
 
       <CircuitModal open={showCircuits} onClose={() => setShowCircuits(false)} />
+      <WeightHistory open={showWeightHistory} onClose={() => setShowWeightHistory(false)} weights={weights} goalWeight={80} />
     </div>
   )
 }

@@ -54,8 +54,9 @@ export default function DayCell({ date, session, savedSession, isToday, isPast, 
   }
 
   function handleIntensity(val: number) {
-    setLocalIntensity(val)
-    onIntensity(dateStr, val)
+    const newVal = val === localIntensity ? 0 : val
+    setLocalIntensity(newVal)
+    onIntensity(dateStr, newVal)
   }
 
   function handleNoteBlur() {
@@ -68,9 +69,7 @@ export default function DayCell({ date, session, savedSession, isToday, isPast, 
   return (
     <div className={clsx(
       'border-r border-b border-gray-200 min-h-[110px] p-2 flex flex-col gap-1 relative transition-colors',
-      isToday && 'bg-lime/10',
-      localDone && 'bg-lime/5',
-      session.type === 'rest' && 'bg-gray-50/60',
+      localDone ? 'bg-lime/20' : isToday ? 'bg-yellow-50' : session.type === 'rest' ? 'bg-gray-50' : 'bg-white',
     )}>
       <span className={clsx('font-bebas text-xl leading-none', isToday ? 'text-lime2' : 'text-navy')}>
         {dayNum}
