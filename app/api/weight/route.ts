@@ -9,9 +9,12 @@ async function makeSupabase() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get: (name: string) => cookieStore.get(name)?.value,
-        set: () => {},
-        remove: () => {},
+        getAll: () => cookieStore.getAll(),
+        setAll: (cookiesToSet: { name: string; value: string; options?: object }[]) => {
+          cookiesToSet.forEach(({ name, value, options }) =>
+            cookieStore.set(name, value, options as Parameters<typeof cookieStore.set>[2])
+          )
+        },
       },
     }
   )
